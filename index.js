@@ -75,17 +75,21 @@ async function run() {
     });
 
     // -----verifye token
-    const veryfyToken = (req, res, next) => {
+    const verifyToken = (req, res, next) => {
       const token = req.cookies?.token;
-      if (!token)
+
+      if (!token) {
         return res.status(401).send({ message: "unauthorized access" });
+      }
+
+      // verify the token
       jwt.verify(token, process.env.SECRET_KEY, (err, decoded) => {
         if (err) {
           return res.status(401).send({ message: "unauthorized access" });
         }
         req.user = decoded;
+        next();
       });
-      next();
     };
     //   ----------post sectaion-------
     app.get("/", async (req, res) => {
