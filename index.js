@@ -133,25 +133,21 @@ async function run() {
     // --------------daynamic delete btn
     app.delete("/my-booking/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
-      const userEmail = req.user?.email; // Token থেকে ইমেইল নেওয়া হচ্ছে
+      const userEmail = req.user?.email;
 
-      // বুকিংয়ের তথ্য খুঁজে পাওয়া
       const query = { _id: new ObjectId(id) };
       const booking = await myBookingCollection.findOne(query);
 
-      // যদি বুকিং না থাকে
       if (!booking) {
         return res.status(404).send({ message: "Booking not found" });
       }
 
-      // যদি টোকেনের ইমেইল এবং বুকিংয়ের ইমেইল মিলে না যায়
       if (booking.email !== userEmail) {
         return res.status(403).send({
           message: "You are not authorized to delete this booking",
         });
       }
 
-      // বুকিংয়ের তারিখের তুলনা
       const currentDate = moment();
       const bookingDate = moment(booking.bookingDate);
       if (bookingDate.diff(currentDate, "days") < 1) {
@@ -160,7 +156,6 @@ async function run() {
         });
       }
 
-      // বুকিং মুছে ফেলা
       const result = await myBookingCollection.deleteOne(query);
       res.send(result);
     });
@@ -173,10 +168,21 @@ async function run() {
       res.send(result);
     });
 
-    app.put("/my-booking/:id", async (req, res) => {
+    app.put("/my-booking/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
-      const options = { upsert: true };
+      const booking = await myBookingCollection.findOne(filter);
+      if (!booking) {
+        return res.status(404).send({ message: "Booking not found" });
+      }
+
+      if (booking.email !== req.user.email) {
+        return res.status(403).send({
+          message: "You are not authorized to delete this booking",
+        });
+      }
+
+      // const options = { upsert: true };
       const updatedBooking = req.body;
       const user = {
         $set: {
@@ -186,9 +192,10 @@ async function run() {
           roomtyp: updatedBooking.roomtyp,
         },
       };
-      const result = await myBookingCollection.updateOne(filter, user, options);
+      const result = await myBookingCollection.updateOne(filter, user);
       res.send(result);
     });
+
     //   ----------------------------------
     // app.post("/visa", async (req, res) => {
     //   const addNewVisa = req.body;
