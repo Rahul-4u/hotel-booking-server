@@ -1,23 +1,40 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const moment = require("moment");
+const jwt = require("jsonwebtoken");
 const cookiePaser = require("cookie-parser");
 const app = express();
 const port = process.env.PORT || 8000;
 // -------------
-const corsOptions = {
-  origin: ["http://localhost:5173"],
-  credentials: true,
-};
-app.use(cors(corsOptions));
-
+app.use(
+  cors({
+    origin: ["http://localhost:5173"],
+    credentials: true,
+  })
+);
+// "https://b10-a11-cb71f.web.app";
 app.use(express.json());
 app.use(cookiePaser());
 // -----------------------------------------------------
 
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-const moment = require("moment");
-const jwt = require("jsonwebtoken");
+const verifyToken = (req, res, next) => {
+  const token = req.cookies?.token;
+
+  if (!token) {
+    return res.status(401).send({ message: "unauthorized access" });
+  }
+
+  // verify the token
+  jwt.verify(token, process.env.SECRET_KEY, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: "unauthorized access" });
+    }
+    req.user = decoded;
+    next();
+  });
+};
 
 const uri = `mongodb+srv://${process.env.BD_MASTER}:${process.env.BD_PASS}@cluster0.zs3l2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -63,34 +80,18 @@ async function run() {
         .send({ success: true });
     });
     // ---- tokoen clear
-    app.get("/logout", async (req, res) => {
+    app.post("/logout", (req, res) => {
       res
         .clearCookie("token", {
-          maxAge: 0,
+          httpOnly: true,
           secure: process.env.NODE_ENV === "production",
-
           sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
         })
         .send({ success: true });
     });
 
     // -----verifye token
-    const verifyToken = (req, res, next) => {
-      const token = req.cookies?.token;
 
-      if (!token) {
-        return res.status(401).send({ message: "unauthorized access" });
-      }
-
-      // verify the token
-      jwt.verify(token, process.env.SECRET_KEY, (err, decoded) => {
-        if (err) {
-          return res.status(401).send({ message: "unauthorized access" });
-        }
-        req.user = decoded;
-        next();
-      });
-    };
     //   ----------post sectaion-------
     app.get("/", async (req, res) => {
       res.send("hello dev");
@@ -122,25 +123,44 @@ async function run() {
       const result = await myBookingCollection.insertOne(myBooking);
       res.send(result);
     });
-    app.get("/my-booking", veryfyToken, async (req, res) => {
+    app.get("/my-booking", verifyToken, async (req, res) => {
       const cursor = myBookingCollection.find();
+      // console.log(req.cookies);
+
       const result = await cursor.toArray();
       res.send(result);
     });
     // --------------daynamic delete btn
-    app.delete("/my-booking/:id", async (req, res) => {
+    app.delete("/my-booking/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
+      const userEmail = req.user?.email; // Token থেকে ইমেইল নেওয়া হচ্ছে
+
+      // বুকিংয়ের তথ্য খুঁজে পাওয়া
       const query = { _id: new ObjectId(id) };
       const booking = await myBookingCollection.findOne(query);
 
-      // ---------
+      // যদি বুকিং না থাকে
+      if (!booking) {
+        return res.status(404).send({ message: "Booking not found" });
+      }
+
+      // যদি টোকেনের ইমেইল এবং বুকিংয়ের ইমেইল মিলে না যায়
+      if (booking.email !== userEmail) {
+        return res.status(403).send({
+          message: "You are not authorized to delete this booking",
+        });
+      }
+
+      // বুকিংয়ের তারিখের তুলনা
       const currentDate = moment();
       const bookingDate = moment(booking.bookingDate);
       if (bookingDate.diff(currentDate, "days") < 1) {
         return res.status(400).send({
-          message: " uff ! Booking cannot be canceled less than 1 day before.",
+          message: "Booking cannot be canceled less than 1 day before",
         });
       }
+
+      // বুকিং মুছে ফেলা
       const result = await myBookingCollection.deleteOne(query);
       res.send(result);
     });
@@ -180,7 +200,7 @@ async function run() {
 
     // ---------Rivew collection---------
 
-    app.post("/rivew", veryfyToken, async (req, res) => {
+    app.post("/rivew", async (req, res) => {
       const addNewrivew = req.body;
       addNewrivew.email = req.user?.email;
       addNewrivew.createdAt = new Date();
@@ -211,9 +231,8 @@ async function run() {
 
     // Assuming you're using Express on the backend
     app.get("/rivew", async (req, res) => {
-      const { roomId } = req.query; // Get roomId from query params
-      console.log("Received roomId:", roomId); // Log roomId
-
+      const { roomId } = req.query;
+      console.log("Received roomId:", roomId);
       try {
         let query = {};
         if (roomId) {
