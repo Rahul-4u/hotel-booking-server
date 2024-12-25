@@ -196,14 +196,53 @@ async function run() {
       res.send(result);
     });
 
-    //   ----------------------------------
-    // app.post("/visa", async (req, res) => {
-    //   const addNewVisa = req.body;
-    //   // console.log("Adding new coffee", addNewVisa);
+    // app.get("/roomsWithReviews/:daynamicId", async (req, res) => {
+    //   const { daynamicId } = req.params; // URL প্যারামিটার থেকে daynamicId নেওয়া
 
-    //   const result = await visaCollection.insertOne(addNewVisa);
-    //   res.send(result);
+    //   try {
+    //     // রুম কালেকশন থেকে মিলানো রুম ডেটা নিয়ে আসা
+    //     const room = await roomCollection.findOne({ daynamicId: daynamicId });
+
+    //     // যদি রুম না পাওয়া যায়, তাও 404 রেসপন্স পাঠানো
+    //     if (!room) {
+    //       return res.status(404).send({ message: "Room not found" });
+    //     }
+
+    //     // রিভিউ কালেকশন থেকে মিলানো রিভিউ ডেটা নিয়ে আসা
+    //     const reviewsForRoom = await rivewCollection
+    //       .find({ daynamicId: daynamicId })
+    //       .toArray();
+
+    //     // রুম এবং তার সাথে সম্পর্কিত রিভিউ একসাথে রিটার্ন করা
+    //     res.send({
+    //       room,
+    //       reviews: reviewsForRoom,
+    //     });
+    //   } catch (error) {
+    //     res.status(500).send({ error: "Something went wrong!" });
+    //   }
     // });
+
+    // ----daynamic rivew data
+    app.get("/roomWithReviews/:daynamicId", async (req, res) => {
+      const { daynamicId } = req.params;
+      try {
+        const room = await roomCollection.findOne({ daynamicId: daynamicId });
+        if (!room) {
+          return res.status(404).send({ message: " Room non found" });
+        }
+        const reviewsForRoom = await rivewCollection
+          .find({ daynamicId: daynamicId })
+          .toArray();
+
+        res.send({
+          room,
+          reviews: reviewsForRoom,
+        });
+      } catch (error) {
+        res.status(500).send({ error: "Something went wrong!" });
+      }
+    });
 
     // ---------Rivew collection---------
 
