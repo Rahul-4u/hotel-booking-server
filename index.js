@@ -61,6 +61,7 @@ async function run() {
     const myBookingCollection = database.collection("booking");
     const rivewCollection = database.collection("rivew");
     const speciaOffersCollection = database.collection("offer");
+    const cardCollection = database.collection("card");
 
     // ------jwt token
     app.post("/jwt", async (req, res) => {
@@ -319,6 +320,17 @@ async function run() {
     });
     app.get("/offer", async (req, res) => {
       const cursor = speciaOffersCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+    // --------------------------------
+    app.post("/add-servies", async (req, res) => {
+      const newCard = req.body;
+      const result = await cardCollection.insertOne(newCard);
+      res.send(result);
+    });
+    app.get("/card", async (req, res) => {
+      const cursor = cardCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     });
