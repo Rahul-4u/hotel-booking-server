@@ -117,6 +117,19 @@ async function run() {
       res.send(result);
     });
 
+    // -----------------
+    app.get("/add-room/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await roomCollection.findOne(query);
+      if (result) {
+        res.send(result);
+      } else {
+        res.status(404).send({ error: "Room not found" });
+      }
+    });
+    // app.get("/add-room/:id");
+
     // -------my booking -------
     app.post("/my-booking", async (req, res) => {
       const myBooking = req.body;
@@ -195,33 +208,6 @@ async function run() {
       const result = await myBookingCollection.updateOne(filter, user);
       res.send(result);
     });
-
-    // app.get("/roomsWithReviews/:daynamicId", async (req, res) => {
-    //   const { daynamicId } = req.params; // URL প্যারামিটার থেকে daynamicId নেওয়া
-
-    //   try {
-    //     // রুম কালেকশন থেকে মিলানো রুম ডেটা নিয়ে আসা
-    //     const room = await roomCollection.findOne({ daynamicId: daynamicId });
-
-    //     // যদি রুম না পাওয়া যায়, তাও 404 রেসপন্স পাঠানো
-    //     if (!room) {
-    //       return res.status(404).send({ message: "Room not found" });
-    //     }
-
-    //     // রিভিউ কালেকশন থেকে মিলানো রিভিউ ডেটা নিয়ে আসা
-    //     const reviewsForRoom = await rivewCollection
-    //       .find({ daynamicId: daynamicId })
-    //       .toArray();
-
-    //     // রুম এবং তার সাথে সম্পর্কিত রিভিউ একসাথে রিটার্ন করা
-    //     res.send({
-    //       room,
-    //       reviews: reviewsForRoom,
-    //     });
-    //   } catch (error) {
-    //     res.status(500).send({ error: "Something went wrong!" });
-    //   }
-    // });
 
     // ----daynamic rivew data
     app.get("/roomWithReviews/:daynamicId", async (req, res) => {
