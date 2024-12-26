@@ -10,7 +10,7 @@ const port = process.env.PORT || 8000;
 // -------------
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: ["http://localhost:5173", "https://b10-a11-cb71f.web.app"],
     credentials: true,
   })
 );
@@ -110,7 +110,21 @@ async function run() {
       const updateReview = await rivewCollection.updateOne(filter, update);
       res.send(result);
     });
+    //  -----------
 
+    app.get("/rooms", async (req, res) => {
+      try {
+        const { minPrice, maxPrice } = req.query;
+        const rooms = await Room.find({
+          price: { $: minPrice, $: maxPrice },
+        });
+        res.json(rooms);
+      } catch (error) {
+        res.status.send("Error occurred while fetching rooms");
+      }
+    });
+
+    // -----------
     app.get("/add-room", async (req, res) => {
       const cursor = roomCollection.find();
       const result = await cursor.toArray();
