@@ -10,7 +10,11 @@ const port = process.env.PORT || 8000;
 // -------------
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://b10-a11-cb71f.web.app"],
+    origin: [
+      "http://localhost:5173",
+      // "https://b10-a11-cb71f.web.app",
+      "https://radiant-quokka-50a3f7.netlify.app",
+    ],
     credentials: true,
   })
 );
@@ -158,35 +162,49 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     });
-    // --------------daynamic delete btn
-    app.delete("/my-booking/:id", verifyToken, async (req, res) => {
-      const id = req.params.id;
-      const userEmail = req.user?.email;
+    // // --------------daynamic delete btn
+    // app.delete("/my-bookingg/:id", verifyToken, async (req, res) => {
+    //   const id = req.params.id;
+    //   const userEmail = req.user?.email;
 
-      const query = { _id: new ObjectId(id) };
-      const booking = await myBookingCollection.findOne(query);
+    //   const query = { _id: new ObjectId(id) };
+    //   const booking = await myBookingCollection.findOne(query);
 
-      if (!booking) {
-        return res.status(404).send({ message: "Booking not found" });
-      }
+    //   if (!booking) {
+    //     return res.status(404).send({ message: "Booking not found" });
+    //   }
 
-      if (booking.email !== userEmail) {
-        return res.status(403).send({
-          message: "You are not authorized to delete this booking",
-        });
-      }
+    //   if (booking.email !== userEmail) {
+    //     return res.status(403).send({
+    //       message: "You are not authorized to delete this booking",
+    //     });
+    //   }
 
-      const currentDate = moment();
-      const bookingDate = moment(booking.bookingDate);
-      if (bookingDate.diff(currentDate, "days") < 1) {
-        return res.status(400).send({
-          message: "Booking cannot be canceled less than 1 day before",
-        });
-      }
+    //   const currentDate = moment();
+    //   const bookingDate = moment(booking.bookingDate);
+    //   if (bookingDate.diff(currentDate, "days") < 1) {
+    //     return res.status(400).send({
+    //       message: "Booking cannot be canceled less than 1 day before",
+    //     });
+    //   }
 
-      const result = await myBookingCollection.deleteOne(query);
-      res.send(result);
-    });
+    //   const result = await myBookingCollection.deleteOne(query);
+    //   res.send(result);
+    // });
+     app.delete("/bookingDelete/:id", async (req, res) => {
+       try {
+         const id = req.params.id;
+         const query = { _id: new ObjectId(id) };
+         const result = await myBookingCollection.deleteOne(query);
+         if (result.deletedCount === 0) {
+           return res.status(404).send({ message: "Booking not found" });
+         }
+         res.send({ message: "Booking deleted successfully" });
+       } catch (error) {
+         console.error("Error deleting booking:", error);
+         res.status(500).send({ message: "Failed to delete booking" });
+       }
+     });
 
     // ---update card------
     app.get("/my-booking/:id", async (req, res) => {
